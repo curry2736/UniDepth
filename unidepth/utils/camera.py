@@ -85,9 +85,15 @@ class Camera:
         self.K = self.K.to(device, non_blocking=non_blocking)
         return self
 
+    # def get_rays(self, shapes, noisy=False):
+    #     b, h, w = shapes
+    #     uv = coords_grid(1, h, w, device=self.K.device, noisy=noisy)
+    #     rays = self.unproject(uv)
+    #     return rays / torch.norm(rays, dim=1, keepdim=True).clamp(min=1e-4)
+        
     def get_rays(self, shapes, noisy=False):
         b, h, w = shapes
-        uv = coords_grid(1, h, w, device=self.K.device, noisy=noisy)
+        uv = coords_grid(b, h, w, device=self.K.device, noisy=noisy)
         rays = self.unproject(uv)
         return rays / torch.norm(rays, dim=1, keepdim=True).clamp(min=1e-4)
 
@@ -254,6 +260,7 @@ class Pinhole(Camera):
     @torch.autocast(device_type="cuda", enabled=False, dtype=torch.float32)
     def unproject(self, uv):
         b, _, h, w = uv.shape
+        
         uv_flat = uv.reshape(b, 2, -1)  # [B, 2, H*W]
         uv_homogeneous = torch.cat(
             [uv_flat, torch.ones(b, 1, h * w, device=uv.device)], dim=1
